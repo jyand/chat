@@ -1,5 +1,43 @@
 #include "config.h"
 
+struct UserNode *head = NULL ;
+struct UserNode *tail = NULL ;
+
+void AddTail(int newclisockfd) {
+        if (head == NULL) {
+                head = (struct UserNode*)malloc(sizeof(struct UserNode)) ;
+                head->clisockfd = newclisockfd ;
+                head->next = NULL ;
+                tail = head ;
+        } else {
+                tail->next = (struct UserNode*)malloc(sizeof(struct UserNode)) ;
+                tail->next->clisockfd = newclisockfd ;
+                tail->next->next = NULL ;
+                tail = tail->next ;
+        }
+}
+
+void Broadcast(int fromfd, char *message) {
+        struct sockaddr_in cliaddr ;
+        socklen_t clen = sizeof(cliaddr) ;
+        if (getpeername(fromfd, (struct sockaddr*)&cliaddr, &clen) < 0) {
+                error("Error! Unkown sender") ;
+        }
+        struct UserNode *current = head ;
+        while (current != NULL) {
+                if (current->clisockfd != fromfd) {
+                        char buffer[512] ;
+                        sprintf(buffer, "[%s]:%s", inet_ntoa(cliaddr.sin_addr), message) ;
+                        int nmsg = strlen(buffer) ;
+                        int nsend = send(current->clisockfd, buffer, nmsg, 0) ;
+                        if (nsend != nmsg) {
+                                error("Error! send() failed") ;
+                        }
+                }
+                current = current->next ;
+        }
+}
+
 void *ServerThread(void *args) {
         pthread_detach(pthread_self()) ;
         int clisockfd = ((struct ThreadArgs*)args)->clisockfd ;
@@ -47,6 +85,7 @@ int main(int argc, char **argv) {
                         error("Error! accept() failed") ;
                 }
                 printf("Connected: %s\n", inet_ntoa(cli_addr.sin_addr)) ;
+                AddTail(newsockfd) ;
                 struct ThreadArgs *args = (struct ThreadArgs*)malloc(sizeof(struct ThreadArgs)) ;
                 if (args == NULL) {
                         error("Error! Couldn't create thread argument.") ;

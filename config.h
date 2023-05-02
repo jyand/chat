@@ -17,6 +17,11 @@ struct ThreadArgs {
         int clisockfd ;
 } ;
 
+struct UserNode {
+        int clisockfd ;
+        struct UserNode *next ;
+} ;
+
 void error(const char *msg) {
         perror(msg) ;
         exit(1) ;
