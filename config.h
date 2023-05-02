@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -13,5 +14,10 @@
 #define MAX_USERS 20
 
 struct ThreadArgs {
-        int clisockfd
+        int clisockfd ;
 } ;
+
+void error(const char *msg) {
+        perror(msg) ;
+        exit(1) ;
+}
