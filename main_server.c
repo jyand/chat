@@ -3,15 +3,23 @@
 struct UserNode *head = NULL ;
 struct UserNode *tail = NULL ;
 
-void AddTail(int newclisockfd) {
+void AddTail(int newclisockfd, char *newusername, char *newcolor) {
         if (head == NULL) {
                 head = (struct UserNode*)malloc(sizeof(struct UserNode)) ;
                 head->clisockfd = newclisockfd ;
+                head->username = (char*)malloc(strlen(newusername)*sizeof(char)) ;
+                strcpy(head->username, newusername) ;
+                head->color = (char*)malloc(strlen(newcolor)*sizeof(char)) ;
+                strcpy(head->color, newcolor) ;
                 head->next = NULL ;
                 tail = head ;
         } else {
                 tail->next = (struct UserNode*)malloc(sizeof(struct UserNode)) ;
                 tail->next->clisockfd = newclisockfd ;
+                tail->next->username = (char*)malloc(strlen(newusername)*sizeof(char)) ;
+                strcpy(tail->next->username, newusername) ;
+                tail->next->color = (char*)malloc(strlen(newcolor)*sizeof(char)) ;
+                strcpy(tail->next->color, newcolor) ;
                 tail->next->next = NULL ;
                 tail = tail->next ;
         }
@@ -47,15 +55,51 @@ void *ServerThread(void *args) {
         if (nrcv < 0) {
                 error("Error! recv() failed") ;
         }
+        struct UserNode current = head ;
+        struct UserNode prev = head ;
+        int tempfd ;
+        while (current != NULL) {
+                tempfd = current->clisockfd ;
+                if (tempfd == clisockfd) {
+                        break ;
+                }
+                if (current != head) {
+                        prev = prev->next ;
+                }
+                current = current->next ;
+        }
+        if (nrcv == 0) {
+                printf("%d disconnected\n", current->username) ;
+                if (current == head) {
+                        head = current->next ;
+                        free(current) ;
+                } else {
+                        prev->next = current->next ;
+                        free(current) ;
+                }
+                close(clisockfd) ;
+                return NULL ;
+        } else {
+                Broadcast(clisockfd, buffer) ;
+        }
         while (nrcv > 0) {
-                int nsend = send(clisockfd, buffer, nrcv, 0) ;
+                /*int nsend = send(clisockfd, buffer, nrcv, 0) ;
                 if (nsend != nrcv) {
                         error("Error! send() failed") ;
-                }
+                }*/
+                memset(buffer, 0, sizeof(buffer)) ;
                 nrcv = recv(clisockfd, buffer, 256, 0) ;
                 if (nrcv < 0) {
                         error("Error! recv() failed") ;
+                } else {
+                        Broadcast(clisockfd, buffer) ;
                 }
+        }
+        if (current == head) {
+                head = current->next ; 
+        } else {
+                prev->next = current->next ;
+                free(current) ;
         }
         close(clisockfd) ;
         return NULL ;

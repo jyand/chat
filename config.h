@@ -19,6 +19,8 @@ struct ThreadArgs {
 
 struct UserNode {
         int clisockfd ;
+        char *username ;
+        char *color ;
         struct UserNode *next ;
 } ;
 
