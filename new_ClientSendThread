@@ -23,3 +23,22 @@ void *ClientSendThread(void *args) {
 
     return NULL;
 }
+
+void parse_command(char *input_string, char **argv) {
+    int i = 0;
+    char *token;
+
+    // initialize argv to NULL
+    for (i = 0; i < MAX_BUFFER; i++) {
+        argv[i] = NULL;
+    }
+
+    // tokenize input_string and store tokens in argv
+    i = 0;
+    token = strtok(input_string, " ");
+    while (token != NULL) {
+        argv[i++] = token;
+        token = strtok(NULL, " ");
+    }
+    argv[i] = NULL;
+}
