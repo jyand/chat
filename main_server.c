@@ -1,7 +1,16 @@
 #include "config.h"
 
+const char *colors[] = {"\x1B[31m", "\x1B[32m", "\x1B[33m", "\x1B[34m", "\x1B[35m", "\x1B[36m", "\x1B[37m"} ;
+
 struct UserNode *head = NULL ;
 struct UserNode *tail = NULL ;
+
+// not unqiue for now
+char *AssignColor() {
+        srand((unsigned)"") ;
+        int k = rand()%7 ;
+        return colors[k] ;
+}
 
 void AddTail(int newclisockfd, char *newusername, char *newcolor) {
         if (head == NULL) {
@@ -35,7 +44,7 @@ void Broadcast(int fromfd, char *message) {
         while (current != NULL) {
                 if (current->clisockfd != fromfd) {
                         char buffer[512] ;
-                        sprintf(buffer, "[%s]:%s", inet_ntoa(cliaddr.sin_addr), message) ;
+                        sprintf(buffer, "\x1B[0m%s[%s@%s]: %s\x1B[0m", current->color, current->username, inet_ntoa(cliaddr.sin_addr), message) ;
                         int nmsg = strlen(buffer) ;
                         int nsend = send(current->clisockfd, buffer, nmsg, 0) ;
                         if (nsend != nmsg) {
@@ -51,12 +60,12 @@ void *ServerThread(void *args) {
         int clisockfd = ((struct ThreadArgs*)args)->clisockfd ;
         free(args) ;
         char buffer[256] ;
-        int nrcv = recv(clisockfd, buffer, 256, 0) ;
+        int nrcv = recv(clisockfd, buffer, 255, 0) ;
         if (nrcv < 0) {
                 error("Error! recv() failed") ;
         }
-        struct UserNode current = head ;
-        struct UserNode prev = head ;
+        struct UserNode *current = head ;
+        struct UserNode *prev = head ;
         int tempfd ;
         while (current != NULL) {
                 tempfd = current->clisockfd ;
@@ -88,7 +97,7 @@ void *ServerThread(void *args) {
                         error("Error! send() failed") ;
                 }*/
                 memset(buffer, 0, sizeof(buffer)) ;
-                nrcv = recv(clisockfd, buffer, 256, 0) ;
+                nrcv = recv(clisockfd, buffer, 255, 0) ;
                 if (nrcv < 0) {
                         error("Error! recv() failed") ;
                 } else {
@@ -129,7 +138,12 @@ int main(int argc, char **argv) {
                         error("Error! accept() failed") ;
                 }
                 printf("Connected: %s\n", inet_ntoa(cli_addr.sin_addr)) ;
-                AddTail(newsockfd) ;
+                char namebuffer[256] ;
+                int nrcv = recv(newsockfd, namebuffer, 255,0) ;
+                if (nrcv < 0) {
+                        error("Error! recv() failed") ;
+                }
+                AddTail(newsockfd, namebuffer, AssignColor()) ;
                 struct ThreadArgs *args = (struct ThreadArgs*)malloc(sizeof(struct ThreadArgs)) ;
                 if (args == NULL) {
                         error("Error! Couldn't create thread argument.") ;
