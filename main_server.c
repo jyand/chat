@@ -87,7 +87,7 @@ void *ServerThread(void *args) {
                 current = current->next ;
         }
         if (nrcv == 0) {
-                printf("%d disconnected\n", current->username) ;
+                printf("%s disconnected\n", current->username) ;
                 if (current == head) {
                         head = current->next ;
                         free(current) ;
