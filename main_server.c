@@ -1,6 +1,6 @@
 #include "config.h"
 
-const char *colors[] = {"\x1B[31m", "\x1B[32m", "\x1B[33m", "\x1B[34m", "\x1B[35m", "\x1B[36m", "\x1B[37m"} ;
+char *colors[MAX_USERS] = {"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[34m", "\x1b[35m", "\x1b[36m", "\x1b[37m", "\x1b[41m", "\x1b[42m", "\x1b[43m", "\x1b[44m", "\x1b[45m", "\x1b[46m", "\x1b[47m"} ;
 
 struct UserNode *head = NULL ;
 struct UserNode *tail = NULL ;
@@ -8,7 +8,7 @@ struct UserNode *tail = NULL ;
 // not unqiue for now
 char *AssignColor() {
         srand((unsigned)"") ;
-        int k = rand()%7 ;
+        int k = rand()%MAX_USERS ;
         return colors[k] ;
 }
 
@@ -40,11 +40,21 @@ void Broadcast(int fromfd, char *message) {
         if (getpeername(fromfd, (struct sockaddr*)&cliaddr, &clen) < 0) {
                 error("Error! Unkown sender") ;
         }
+        char *username ;
+        char *color ;
         struct UserNode *current = head ;
         while (current != NULL) {
                 if (current->clisockfd != fromfd) {
+                        username = current->username ;
+                        color = current->color ;
+                }
+                current = current->next ;
+        }
+        current = head ;
+        while (current != NULL) {
+                if (current->clisockfd != fromfd) {
                         char buffer[512] ;
-                        sprintf(buffer, "\x1B[0m%s[%s@%s]: %s\x1B[0m", current->color, current->username, inet_ntoa(cliaddr.sin_addr), message) ;
+                        sprintf(buffer, "\x1B[0m%s[%s@%s]: %s\x1B[0m", color, username, inet_ntoa(cliaddr.sin_addr), message) ;
                         int nmsg = strlen(buffer) ;
                         int nsend = send(current->clisockfd, buffer, nmsg, 0) ;
                         if (nsend != nmsg) {
@@ -66,10 +76,9 @@ void *ServerThread(void *args) {
         }
         struct UserNode *current = head ;
         struct UserNode *prev = head ;
-        int tempfd ;
         while (current != NULL) {
-                tempfd = current->clisockfd ;
-                if (tempfd == clisockfd) {
+                int temp = current->clisockfd ;
+                if (temp == clisockfd) {
                         break ;
                 }
                 if (current != head) {
@@ -92,10 +101,10 @@ void *ServerThread(void *args) {
                 Broadcast(clisockfd, buffer) ;
         }
         while (nrcv > 0) {
-                /*int nsend = send(clisockfd, buffer, nrcv, 0) ;
+                int nsend = send(clisockfd, buffer, nrcv, 0) ;
                 if (nsend != nrcv) {
                         error("Error! send() failed") ;
-                }*/
+                }
                 memset(buffer, 0, sizeof(buffer)) ;
                 nrcv = recv(clisockfd, buffer, 255, 0) ;
                 if (nrcv < 0) {
@@ -137,12 +146,12 @@ int main(int argc, char **argv) {
                 if (newsockfd < 0) {
                         error("Error! accept() failed") ;
                 }
-                printf("Connected: %s\n", inet_ntoa(cli_addr.sin_addr)) ;
                 char namebuffer[256] ;
                 int nrcv = recv(newsockfd, namebuffer, 255,0) ;
                 if (nrcv < 0) {
                         error("Error! recv() failed") ;
                 }
+                printf("Connected: %s\n", inet_ntoa(cli_addr.sin_addr)) ;
                 AddTail(newsockfd, namebuffer, AssignColor()) ;
                 struct ThreadArgs *args = (struct ThreadArgs*)malloc(sizeof(struct ThreadArgs)) ;
                 if (args == NULL) {

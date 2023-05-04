@@ -3,6 +3,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,9 +11,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define PORT_NUM 1004
+#define PORT_NUM 1030
 #define MAX_ROOMS 5
-#define MAX_USERS 20
+#define MAX_USERS 14
+#define NEWLINE_VALUE 0xA
 
 struct ThreadArgs {
         int clisockfd ;
