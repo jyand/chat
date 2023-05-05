@@ -1,6 +1,6 @@
 #include "config.h"
 
-void parse_command(char *input_string, char **argv) {
+/*void parse_command(char *input_string, char **argv) {
     int i = 0;
     char *token;
 
@@ -17,7 +17,7 @@ void parse_command(char *input_string, char **argv) {
         token = strtok(NULL, " ");
     }
     argv[i] = NULL;
-}
+}*/
 
 void *ClientRecvThread(void *args) {
         pthread_detach(pthread_self()) ;
@@ -26,7 +26,7 @@ void *ClientRecvThread(void *args) {
         char buffer[512] ;
         int n = recv(sockfd, buffer, 512, 0) ;
         while (n > 0) {
-                memset(buffer, 0, sizeof(buffer)) ;
+                memset(buffer, 0, 512) ;
                 n = recv(sockfd, buffer, 512, 0) ;
                 if (n < 0) {
                         error("Error! recv() failed") ;
@@ -69,7 +69,12 @@ void *ClientSendThread(void *args) {
         int n ;
         bool validname = false ;
         do {
-                memset(buffer, 0, sizeof(buffer)) ;
+                if (validname == false) {
+                        printf("make a username\n") ;
+                } else {
+                        printf("\nme: ") ;
+                }
+                memset(buffer, 0, 256) ;
                 fgets(buffer, 255, stdin) ;
                 if (strlen(buffer) == 1) {
                         buffer[0] = '\0' ;
@@ -77,17 +82,16 @@ void *ClientSendThread(void *args) {
                 if (buffer[strlen(buffer)-1] == NEWLINE_VALUE) {
                         buffer[strlen(buffer)-1] = '\0' ;
                 }
+                if (validname == false && strlen(buffer) > 12) {
+                        continue ;
+                } else {
+                        validname = true ;
+                }
                 n = send(sockfd, buffer, strlen(buffer), 0) ;
                 if (n < 0) {
                         error("Error! Couldn't write to socket") ;
                 }
-                if (n == 0) {
-                        break ;
-                }
-                if (strlen(buffer) > 0 && strlen(buffer) < 16) {
-                        validname = true ;
-                }
-        } while (!validname) ;
+        } while (n != 0) ;
         return NULL ;
 }
 
@@ -109,18 +113,6 @@ int main(int argc, char **argv) {
         int status = connect(sockfd, (struct sockaddr*)&serv_addr, slen) ;
         if (status < 0) {
                 error("Error! Couldn't connect") ;
-        }
-        char buffer[256] ;
-        memset(buffer, 0, sizeof(buffer)) ;
-        strcpy(buffer, argv[1]) ;
-        status = send(sockfd, buffer, strlen(buffer), 0) ;
-        if (sockfd < 0) {
-                error("Error! Couldn't write to socket") ;
-        }
-        memset(buffer, 0, sizeof(buffer)) ;
-        int nrcv = recv(sockfd, buffer, 255, 0) ;
-        if (nrcv < 0) {
-                error("Error! recv() failed") ;
         }
         //pthread_t tid[2] ;
         pthread_t tidtx ;

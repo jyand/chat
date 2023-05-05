@@ -5,7 +5,19 @@ char *colors[MAX_USERS] = {"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[34m", "\x1b
 struct UserNode *head = NULL ;
 struct UserNode *tail = NULL ;
 
-// not unqiue for now
+void ShowConnected() {
+        struct UserNode *current = head ;
+        if (head == NULL) {
+                printf("empty\n") ;
+        } else {
+                while (current != NULL) {
+                        printf("%s\n", current->username) ;
+                        current = current->next ;
+                }
+        }
+}
+
+// not unique for now
 char *AssignColor() {
         srand((unsigned)"") ;
         int k = rand()%MAX_USERS ;
@@ -44,9 +56,10 @@ void Broadcast(int fromfd, char *message) {
         char *color ;
         struct UserNode *current = head ;
         while (current != NULL) {
-                if (current->clisockfd != fromfd) {
+                if (current->clisockfd == fromfd) {
                         username = current->username ;
                         color = current->color ;
+                        break ;
                 }
                 current = current->next ;
         }
@@ -54,7 +67,7 @@ void Broadcast(int fromfd, char *message) {
         while (current != NULL) {
                 if (current->clisockfd != fromfd) {
                         char buffer[512] ;
-                        sprintf(buffer, "\x1B[0m%s[%s@%s]: %s\x1B[0m", color, username, inet_ntoa(cliaddr.sin_addr), message) ;
+                        sprintf(buffer, "\x1b[0m%s[%s@%s]: %s\x1b[0m", color, username, inet_ntoa(cliaddr.sin_addr), message) ;
                         int nmsg = strlen(buffer) ;
                         int nsend = send(current->clisockfd, buffer, nmsg, 0) ;
                         if (nsend != nmsg) {
@@ -71,9 +84,6 @@ void *ServerThread(void *args) {
         free(args) ;
         char buffer[256] ;
         int nrcv = recv(clisockfd, buffer, 255, 0) ;
-        if (nrcv < 0) {
-                error("Error! recv() failed") ;
-        }
         struct UserNode *current = head ;
         struct UserNode *prev = head ;
         while (current != NULL) {
@@ -85,6 +95,9 @@ void *ServerThread(void *args) {
                         prev = prev->next ;
                 }
                 current = current->next ;
+        }
+        if (nrcv < 0) {
+                error("Error! recv() failed") ;
         }
         if (nrcv == 0) {
                 printf("%s disconnected\n", current->username) ;
@@ -100,21 +113,19 @@ void *ServerThread(void *args) {
         } else {
                 Broadcast(clisockfd, buffer) ;
         }
-        while (nrcv > 0) {
-                int nsend = send(clisockfd, buffer, nrcv, 0) ;
-                if (nsend != nrcv) {
-                        error("Error! send() failed") ;
-                }
-                memset(buffer, 0, sizeof(buffer)) ;
-                nrcv = recv(clisockfd, buffer, 255, 0) ;
+        while (nrcv != 0) {
                 if (nrcv < 0) {
                         error("Error! recv() failed") ;
                 } else {
                         Broadcast(clisockfd, buffer) ;
                 }
+                memset(buffer, 0, sizeof(buffer)) ;
+                nrcv = recv(clisockfd, buffer, 255, 0) ;
         }
+        printf("%s disconnected\n", current->username) ;
         if (current == head) {
                 head = current->next ; 
+                free(current) ;
         } else {
                 prev->next = current->next ;
                 free(current) ;
@@ -147,12 +158,14 @@ int main(int argc, char **argv) {
                         error("Error! accept() failed") ;
                 }
                 char namebuffer[256] ;
-                int nrcv = recv(newsockfd, namebuffer, 255,0) ;
+                memset(namebuffer, 0, 256) ;
+                int nrcv = recv(newsockfd, namebuffer, 255, 0) ;
                 if (nrcv < 0) {
                         error("Error! recv() failed") ;
                 }
-                printf("Connected: %s\n", inet_ntoa(cli_addr.sin_addr)) ;
+                printf("Connected: %s@%s\n", namebuffer, inet_ntoa(cli_addr.sin_addr)) ;
                 AddTail(newsockfd, namebuffer, AssignColor()) ;
+                ShowConnected() ;
                 struct ThreadArgs *args = (struct ThreadArgs*)malloc(sizeof(struct ThreadArgs)) ;
                 if (args == NULL) {
                         error("Error! Couldn't create thread argument.") ;
