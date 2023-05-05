@@ -114,6 +114,35 @@ int main(int argc, char **argv) {
         if (status < 0) {
                 error("Error! Couldn't connect") ;
         }
+        // multi-room part
+        bool newroom = false ; 
+        char buffer[256] ;
+        memset(buffer, 0, 256) ;
+        if (argc > 2) {
+                strcpy(buffer, argv[2]) ;
+        }
+        if (strcmp(buffer, "new") == 0) {
+                newroom = true ;
+        } else {
+                int roomnum = atoi(buffer) ;
+                if (roomnum < 1 && roomnum > 5) {
+                        roomnum = 1 ;
+                }
+                memset(buffer, 0, 256) ;
+                int nrcv = recv(sockfd, buffer, 255, 0) ;
+                if (nrcv < 0) {
+                        error("Error! recv() failed") ;
+                }
+                printf("\n%d", buffer) ;
+        }
+        if (newroom == true) {
+                memset(buffer, 0, 256) ;
+                int nrcv = recv(sockfd, buffer, 255, 0) ;
+                if (nrcv < 0) {
+                        error("Error! recv() failed") ;
+                }
+                printf("\n%s\n", buffer) ;
+        }
         //pthread_t tid[2] ;
         pthread_t tidtx ;
         pthread_t tidrx ;

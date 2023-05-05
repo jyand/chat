@@ -5,13 +5,33 @@ char *colors[MAX_USERS] = {"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[34m", "\x1b
 struct UserNode *head = NULL ;
 struct UserNode *tail = NULL ;
 
+/* store names of connected users organized by room  */
+char *rooms[MAX_ROOMS][MAX_USERS] ;
+
+int CreateNewRoom() {
+        bool newroom_avail = true ;
+        int k ;
+        for (k = 0 ; k < MAX_ROOMS ; ++k) {
+                for (int j = 0 ; j < MAX_USERS ; ++j) {
+                        if (rooms[k][j] != NULL) {
+                                newroom_avail = false ;
+                        }
+                }
+                if (new_room_avail == true) {
+                        return k ;
+                } else {
+                        error("Error! no new rooms available") ;
+                }
+        }
+}
+
 void ShowConnected() {
         struct UserNode *current = head ;
         if (head == NULL) {
                 printf("empty\n") ;
         } else {
                 while (current != NULL) {
-                        printf("%s\n", current->username) ;
+                        printf("%s\n", current->username, current->room) ;
                         current = current->next ;
                 }
         }
@@ -24,7 +44,7 @@ char *AssignColor() {
         return colors[k] ;
 }
 
-void AddTail(int newclisockfd, char *newusername, char *newcolor) {
+void AddTail(int newclisockfd, char *newusername, char *newcolor, int usr_roomnum) {
         if (head == NULL) {
                 head = (struct UserNode*)malloc(sizeof(struct UserNode)) ;
                 head->clisockfd = newclisockfd ;
@@ -32,6 +52,7 @@ void AddTail(int newclisockfd, char *newusername, char *newcolor) {
                 strcpy(head->username, newusername) ;
                 head->color = (char*)malloc(strlen(newcolor)*sizeof(char)) ;
                 strcpy(head->color, newcolor) ;
+                head->room = usr_roomnum ;
                 head->next = NULL ;
                 tail = head ;
         } else {
@@ -41,6 +62,7 @@ void AddTail(int newclisockfd, char *newusername, char *newcolor) {
                 strcpy(tail->next->username, newusername) ;
                 tail->next->color = (char*)malloc(strlen(newcolor)*sizeof(char)) ;
                 strcpy(tail->next->color, newcolor) ;
+                tail->next->room = usr_roomnum ;
                 tail->next->next = NULL ;
                 tail = tail->next ;
         }
@@ -54,11 +76,13 @@ void Broadcast(int fromfd, char *message) {
         }
         char *username ;
         char *color ;
+        int room ;
         struct UserNode *current = head ;
         while (current != NULL) {
                 if (current->clisockfd == fromfd) {
                         username = current->username ;
                         color = current->color ;
+                        room = current->room ;
                         break ;
                 }
                 current = current->next ;
@@ -67,7 +91,7 @@ void Broadcast(int fromfd, char *message) {
         while (current != NULL) {
                 if (current->clisockfd != fromfd) {
                         char buffer[512] ;
-                        sprintf(buffer, "\x1b[0m%s[%s@%s]: %s\x1b[0m", color, username, inet_ntoa(cliaddr.sin_addr), message) ;
+                        sprintf(buffer, "\x1b[0m%s[%s@%s#%d]: %s\x1b[0m", color, username, inet_ntoa(cliaddr.sin_addr), room, message) ;
                         int nmsg = strlen(buffer) ;
                         int nsend = send(current->clisockfd, buffer, nmsg, 0) ;
                         if (nsend != nmsg) {
@@ -101,6 +125,11 @@ void *ServerThread(void *args) {
         }
         if (nrcv == 0) {
                 printf("%s disconnected\n", current->username) ;
+                for (int k = 0 ; k < MAX_USERS ; ++k) {
+                        if (strcmp(current->username, rooms[current->room][k]) == 0) {
+                                rooms[current->room][k] = NULL ;
+                        }
+                }
                 if (current == head) {
                         head = current->next ;
                         free(current) ;
@@ -119,7 +148,7 @@ void *ServerThread(void *args) {
                 } else {
                         Broadcast(clisockfd, buffer) ;
                 }
-                memset(buffer, 0, sizeof(buffer)) ;
+                memset(buffer, 0, 256) ;
                 nrcv = recv(clisockfd, buffer, 255, 0) ;
         }
         printf("%s disconnected\n", current->username) ;
@@ -156,6 +185,14 @@ int main(int argc, char **argv) {
                 int newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &clen) ;
                 if (newsockfd < 0) {
                         error("Error! accept() failed") ;
+                }
+                char roombuffer[256] ;
+                memset(roombuffer, 0, 256) ;
+                int nrcv = recv(newsockfd, roombuffer, 255, 0) ;
+                if (nrcv < 0) {
+                        error("Error! recv() failed") ;
+                }
+                if (strcmp(roombuffer, "new") == 0) {
                 }
                 char namebuffer[256] ;
                 memset(namebuffer, 0, 256) ;
