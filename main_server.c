@@ -1,6 +1,8 @@
 #include "config.h"
 
 char *colors[MAX_USERS] = {"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[34m", "\x1b[35m", "\x1b[36m", "\x1b[37m", "\x1b[41m", "\x1b[42m", "\x1b[43m", "\x1b[44m", "\x1b[45m", "\x1b[46m", "\x1b[47m"} ;
+char *usedcolors[MAX_USERS] = {} ;
+int colorcount = 0;
 
 struct UserNode *head = NULL ;
 struct UserNode *tail = NULL ;
@@ -17,11 +19,23 @@ void ShowConnected() {
         }
 }
 
-// not unique for now
 char *AssignColor() {
         srand((unsigned)"") ;
-        int k = rand()%MAX_USERS ;
-        return colors[k] ;
+        int r ;
+        int k = 1 ;
+        do {
+                r = rand()%MAX_USERS + 1 ;
+                if (colorcount < 1) {
+                        usedcolors[0] = colors[r] ;
+                } else {
+                        ++k ;
+                }
+        } while (strcmp(colors[r], usedcolors[colorcount]) != 0 && (k < colorcount)) ;
+        if (colorcount < MAX_USERS) {
+                colorcount++ ;
+        }
+        usedcolors[colorcount] = colors[r] ;
+        return colors[r] ;
 }
 
 void AddTail(int newclisockfd, char *newusername, char *newcolor) {
