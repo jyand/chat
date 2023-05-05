@@ -18,13 +18,13 @@
 
 struct ThreadArgs {
         int clisockfd ;
+        struct ChatRoom *chatroom;
 } ;
 
 struct UserNode {
         int clisockfd ;
         char *username ;
         char *color ;
-        int *room ;
         struct UserNode *next ;
 } ;
 
