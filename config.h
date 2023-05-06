@@ -25,7 +25,7 @@ struct ChatRoom {
 
 struct ThreadArgs {
         int clisockfd ;
-        struct ChatRoom *chatroom ;
+        //struct ChatRoom *chatroom ;
 } ;
 
 struct UserNode {

@@ -7,47 +7,6 @@ int colorcount = 0;
 struct UserNode *head = NULL ;
 struct UserNode *tail = NULL ;
 
-struct ChatRoom *chatroom_head = NULL;
-struct ChatRoom *chatroom_tail = NULL;
-
-struct ChatRoom *create_chatroom(const char *room_code) {
-    struct ChatRoom *new_room = (struct ChatRoom *)malloc(sizeof(struct ChatRoom));
-    new_room->room_code = strdup(room_code);
-    new_room->user_head = NULL;
-    new_room->user_tail = NULL;
-    new_room->next = NULL;
-
-    if (chatroom_tail == NULL) {
-        chatroom_head = chatroom_tail = new_room;
-    } else {
-        chatroom_tail->next = new_room;
-        chatroom_tail = new_room;
-    }
-
-    return new_room;
-}
-
-// Function to find a chat room by its room code
-struct ChatRoom *find_chatroom_by_code(const char *room_code) {
-    struct ChatRoom *current = chatroom_head;
-    while (current != NULL) {
-        if (strcmp(current->room_code, room_code) == 0) {
-            return current;
-        }
-        current = current->next;
-    }
-    return NULL;
-}
-
-// Function to add a user to a chat room
-void add_user_to_chatroom(struct ChatRoom *chatroom, struct UserNode *user) {
-    if (chatroom->user_tail == NULL) {
-        chatroom->user_head = chatroom->user_tail = user;
-    } else {
-        chatroom->user_tail->next = user;
-        chatroom->user_tail = user;
-    }
-}
 void ShowConnected() {
         struct UserNode *current = head ;
         if (head == NULL) {
@@ -60,6 +19,11 @@ void ShowConnected() {
         }
 }
 
+/*char *AssignColor() {
+        srand((unsigned)"") ;
+        int k = rand()%MAX_USERS ;
+        return colors[k] ;
+}*/
 char *AssignColor() {
         int r ;
         int k = 0 ;
@@ -70,7 +34,7 @@ char *AssignColor() {
                 } else {
                         ++k ;
                 }
-        } while (strcmp(colors[r], usedcolors[colorcount]) == 0 && (k < colorcount)) ;
+        } while (strcmp(colors[r], usedcolors[k]) == 0 && (k < colorcount)) ;
         if (colorcount < MAX_USERS) {
                 colorcount++ ;
         }
