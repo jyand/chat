@@ -16,8 +16,16 @@
 #define MAX_USERS 14
 #define NEWLINE_VALUE 0xA
 
+struct ChatRoom {
+    char *room_code;
+    struct UserNode *user_head;
+    struct UserNode *user_tail;
+    struct ChatRoom *next;
+};
+
 struct ThreadArgs {
         int clisockfd ;
+        struct ChatRoom *chatroom ;
 } ;
 
 struct UserNode {
